@@ -15,7 +15,7 @@ var (
 
 func init() {
 	//confFile, err := os.Open("conf.json")
-	confRaw, err := ioutil.ReadFile("conf.json")
+	confRaw, err := ioutil.ReadFile("~/.drive-cli-conf.json")
 	if err != nil {
 		config = defaultConfig()
 	} else {
@@ -27,7 +27,7 @@ func init() {
 }
 func defaultConfig() *Config {
 	return &Config {
-		BackendUrl: "http://localhost:8080/api",
+		BackendUrl: "http://localhost:8889/api",
 	}
 }
 

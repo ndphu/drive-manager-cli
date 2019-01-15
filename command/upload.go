@@ -2,6 +2,7 @@ package command
 
 import (
 	"encoding/base64"
+	"errors"
 	"github.com/ndphu/drive-manager-cli/config"
 	"github.com/ndphu/google-api-helper"
 	"gopkg.in/urfave/cli.v2"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 )
 
 func UploadCommand() *cli.Command {
@@ -42,18 +44,6 @@ func UploadCommand() *cli.Command {
 				return cli.Exit("error: should provide file to upload", -1)
 			}
 
-			localPath := c.Args().Get(0)
-			uploadFile, err := os.Open(localPath)
-			if err != nil {
-				return cli.Exit("error: cannot opening input file: "+err.Error(), -1)
-			}
-
-			info, err := uploadFile.Stat()
-			if err != nil {
-				return cli.Exit("error: fail to stat file: "+err.Error(), -1)
-			}
-			log.Println("prepare uploading", info.Size(), "bytes using account", c.String("account"))
-
 			log.Println("getting account key...")
 
 			resp, err := http.Get(config.GetConfig().BackendUrl + "/manage/driveAccount/" + c.String("account") + "/key")
@@ -77,26 +67,45 @@ func UploadCommand() *cli.Command {
 				return cli.Exit("error: fail to initialize drive service from key "+err.Error(), -1)
 			}
 
-			quota, err := srv.GetQuotaUsage()
-			if err != nil {
-				return cli.Exit("error: fail to query quota "+err.Error(), -1)
+			wg:=sync.WaitGroup{}
+			for i := 0; i < c.NArg(); i++ {
+				localPath := c.Args().Get(i)
+				log.Println(localPath)
+				wg.Add(1)
+				go func(fp string) {
+					defer wg.Done()
+					err := uploadFile(srv, fp, "" , "" ,"")
+					if err != nil {
+						log.Println(err.Error())
+					}
+				}(localPath)
 			}
-
-			if info.Size() > quota.Limit-quota.Usage {
-				return cli.Exit("error: not enough free space on target account.", -1)
-			}
-			name := c.String("name")
-			if strings.Trim(name, " ") == "" {
-				name = info.Name()
-			}
-
-			uploaded, err := srv.UploadFile(name, c.String("desc"), c.String("mime-type"), localPath)
-			if err != nil {
-				return cli.Exit("error: fail to upload by error "+err.Error(), -1)
-			}
-			log.Println("file uploaded successfully", uploaded.Id)
+			wg.Wait()
 
 			return nil
 		},
 	}
+}
+
+func uploadFile(srv *google_api_helper.DriveService, localPath string, name string, desc string, mimeType string) error {
+	uploadFile, err := os.Open(localPath)
+	if err != nil {
+		return err
+	}
+
+	info, err := uploadFile.Stat()
+	if err != nil {
+		return errors.New("error: fail to stat file at "+localPath+" by error "+err.Error())
+	}
+
+	log.Println("uploading", info.Name(), "...")
+	if strings.Trim(name, " ") == "" {
+		name = info.Name()
+	}
+
+	if _, err := srv.UploadFile(name, desc, mimeType, localPath); err != nil {
+		return errors.New(info.Name()+" error: fail to upload by error "+err.Error())
+	}
+	log.Println(info.Name(), "uploaded successfully")
+	return nil
 }
