@@ -1,6 +1,7 @@
 package main
 
 import (
+<<<<<<< c19a19f499eabc7c202659e9c5cbc454a655bbfc
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -13,10 +14,16 @@ import (
 	"io"
 	"log"
 	"net/http"
+=======
+	"errors"
+	"github.com/urfave/cli"
+	"log"
+>>>>>>> initial commit
 	"os"
 )
 
 var (
+<<<<<<< c19a19f499eabc7c202659e9c5cbc454a655bbfc
 	ProjectId = "my-project-1547120623339"
 )
 
@@ -111,3 +118,35 @@ func saveToken(path string, token *oauth2.Token) {
 	defer f.Close()
 	json.NewEncoder(f).Encode(token)
 }
+=======
+)
+
+func main() {
+	app := cli.NewApp()
+
+	app.Commands = []cli.Command{
+		{
+			Name: "login",
+			Usage: "login to pre-registered user",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name: "token",
+					Usage: "JWT token provided from Web UI",
+				},
+			},
+			Action: func(c*cli.Context) error {
+				jwtToken := c.String("token")
+				if jwtToken == "" {
+					return errors.New("should provide token to login")
+				}
+				return nil
+			},
+		},
+	}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+>>>>>>> initial commit
