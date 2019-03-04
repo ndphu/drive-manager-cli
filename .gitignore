@@ -1,6 +1,11 @@
+<<<<<<< c19a19f499eabc7c202659e9c5cbc454a655bbfc
 ### IntelliJ IDEA ###
 .idea
 *.iws
 *.iml
 *.ipr
 
+=======
+.idea
+drive-manager-cli.iml
+>>>>>>> initial commit
